@@ -1,20 +1,16 @@
 class Api::UsersController < ApplicationController
-
-  before_action :set_user, only: [:show, :edit, :update, :destroy]
+  before_action :set_user, only: [:show, :edit, :update]
 
   def index
     render json: User.all
   end
 
-  def new
-  end
-
-  def signup
+  def create
     user = User.new(user_params)
     if user.save
-      render json: user
+      render json: { token: Auth.create_token(user) }
     else
-      render json: { message: user.errors }, status: 400
+      render json: { errors: { message: user.errors } }, status: 401
     end
   end
 
@@ -23,27 +19,21 @@ class Api::UsersController < ApplicationController
   end
 
   def edit
+    @user.user_cities.build.build_city
   end
 
   def update
     if @user.update(user_params)
       render json: @user
     else
-      render json: { message: user.errors }, status: 400
-    end
-  end
-
-  def destroy
-    if @user.destroy
-      render status: 204
-    else
-      render json: { message: "Unable to remove user" }, status: 400
+      render json: { errors: { message: @user.errors } }, status: 401
     end
   end
 
   private
     def user_params
-      params.require(:user).permit(:name, :email, :password, :cold_sensitivity, :opts_hands_free)
+      params.require(:user).permit(:id, :name, :email, :password, :cold_sensitivity, :opts_hands_free, city_ids: [],
+                                   user_cities_attributes: [:id, city_attributes: [:id, :zip_code]])
     end
 
     def set_user
